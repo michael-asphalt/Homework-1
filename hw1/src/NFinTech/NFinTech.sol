@@ -70,35 +70,62 @@ contract NFinTech is IERC721 {
 
     function ownerOf(uint256 tokenId) public view returns (address) {
         address owner = _owner[tokenId];
-        if (owner == address(0)) revert ZeroAddress();
+        if(owner == address(0)) revert ZeroAddress();
         return owner;
     }
 
     function setApprovalForAll(address operator, bool approved) external {
         // TODO: please add your implementaiton here
+        if(operator == address(0)) revert ZeroAddress();
+        address owner = msg.sender;
+        require(owner != operator);
+        _operatorApproval[owner][operator] = approved;
+        emit ApprovalForAll(owner, operator, approved);
     }
 
     function isApprovedForAll(address owner, address operator) public view returns (bool) {
         // TODO: please add your implementaiton here
+        if(owner == address(0)) revert ZeroAddress();
+        return _operatorApproval[owner][operator];
     }
 
     function approve(address to, uint256 tokenId) external {
         // TODO: please add your implementaiton here
+        if(to == address(0)) revert ZeroAddress();
+        address owner = _owner[tokenId];
+        require(owner != to);
+        require(owner == msg.sender || isApprovedForAll(owner, msg.sender));
+        _tokenApproval[tokenId] = to;
+        emit Approval(owner,to,tokenId);
     }
 
     function getApproved(uint256 tokenId) public view returns (address operator) {
         // TODO: please add your implementaiton here
+        address owner = _owner[tokenId];
+        require(owner != address(0));
+        return _tokenApproval[tokenId];
     }
 
     function transferFrom(address from, address to, uint256 tokenId) public {
         // TODO: please add your implementaiton here
+        if(to == address(0)) revert ZeroAddress();
+        if(from == address(0)) revert ZeroAddress();
+        _balances[from]--;
+        _balances[to]++;
+        _owner[tokenId] = to;
+        delete _tokenApproval[tokenId];
+        emit Transfer(from, to, tokenId);
     }
 
     function safeTransferFrom(address from, address to, uint256 tokenId, bytes calldata data) public {
         // TODO: please add your implementaiton here
+        transferFrom(from, to, tokenId);
+        require(to.code.length == 0 || IERC721TokenReceiver(to).onERC721Received(msg.sender, from, tokenId, data) == IERC721TokenReceiver.onERC721Received.selector);
     }
 
     function safeTransferFrom(address from, address to, uint256 tokenId) public {
         // TODO: please add your implementaiton here
+        transferFrom(from, to, tokenId);
+        require(to.code.length == 0 || IERC721TokenReceiver(to).onERC721Received(msg.sender, from, tokenId, "") == IERC721TokenReceiver.onERC721Received.selector);
     }
 }
